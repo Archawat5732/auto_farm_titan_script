@@ -3,6 +3,98 @@ local function RunConcurrent(fn)
     task.spawn(fn)
 end
 
+-- == Check_Unlock_And_EquipSkill
+RunConcurrent(function()
+    if _G.Configs["Auto Unlock And Equip Skill"] == true then
+        local plr = game:GetService("Players").LocalPlayer
+        local char = plr.Character or plr.CharacterAdded:Wait()
+        local actor = char:WaitForChild("Actor")
+
+        local script1 = [[
+	for _, v in ipairs(getgc(true)) do
+		if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
+			local hotbar = v.Cache.Data.Slots.A.Skills.Hotbar
+			if type(hotbar) == "table" then
+				local skillequip1 = hotbar[1]
+				local skillequip2 = hotbar[2]
+
+				-- เก็บไว้ใน _G ถ้าอยากใช้ต่อภายนอก
+				_G.skillequip1 = (skillequip1 and skillequip1 ~= "") and skillequip1 or false
+				_G.skillequip2 = (skillequip2 and skillequip2 ~= "") and skillequip2 or false
+			end
+		end
+	end
+]]
+        run_on_actor(actor, script1)
+
+        repeat task.wait() until game:IsLoaded()
+        task.wait(20)
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local GET = ReplicatedStorage.Assets.Remotes.GET
+        -- ฟังก์ชันสำหรับปลดล็อคอุปกรณ์ตามหมายเลขที่กำหนด
+        local function unlockEquipment(ids)
+            GET:InvokeServer(table.unpack({
+                "S_Equipment",
+                "Unlock",
+                ids
+            }))
+        end
+
+        -- ฟังก์ชันสำหรับกำหนดสถานะของสกิล
+        local function setSkillState(slot, id)
+            GET:InvokeServer(table.unpack({
+                "S_Equipment",
+                "Skill_State",
+                slot,
+                id
+            }))
+        end
+
+
+        if _G.skillequip1 == false then
+            -- ปลดล็อคอุปกรณ์ ID 1-14 และตั้งค่า Skill Slot 1 เป็น ID 14
+            unlockEquipment({
+                "14", "13", "12", "11", "10", "9", "8",
+                "7", "6", "5", "4", "3", "2", "1"
+            })
+            setSkillState(1, "14")
+        end
+
+
+        if _G.skillequip1 == false then
+            -- ปลดล็อคอุปกรณ์ ID 15-23 และตั้งค่า Skill Slot 2 เป็น ID 23
+            unlockEquipment({
+                "23", "22", "21", "20", "19", "18",
+                "17", "16", "15"
+            })
+            setSkillState(2, "23")
+        end
+
+        local Players = game:GetService("Players")
+        task.wait(2)
+        local function showOkMessage()
+            local player = Players.LocalPlayer
+            local playerGui = player:WaitForChild("PlayerGui")
+
+            local screenGui = Instance.new("ScreenGui")
+            screenGui.Name = "UnlockOkMessageGui"
+            screenGui.ResetOnSpawn = false
+            screenGui.Parent = playerGui
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0, 200, 0, 50)
+            label.Position = UDim2.new(0.5, -100, 0.5, -120)
+            label.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            label.TextColor3 = Color3.new(1, 1, 1)
+            label.Text = "Unlocked"
+            label.Font = Enum.Font.SourceSansBold
+            label.TextScaled = true
+            label.Parent = screenGui
+        end
+
+        showOkMessage()
+    end
+end)
 -- === REJOIN_BYPASS ===
 RunConcurrent(function()
     repeat task.wait() until game:IsLoaded()
@@ -17,6 +109,7 @@ RunConcurrent(function()
         task.wait(_G.Configs["Rejoin_Second"])
         rejoinServer()
     end
+
     if _G.Configs["Rejoin"] == true then
         MainSequence()
     end
@@ -1114,7 +1207,6 @@ RunConcurrent(function()
     if typeof(gold) == "string" then
         if extractedGrade == "S" or extractedGrade == "S+" or extractedGrade == "S-" then
         else
-
             if auto_Upgrade_Gear == true then
                 if maxChecks > 0 then
                     performFixedRounds()
