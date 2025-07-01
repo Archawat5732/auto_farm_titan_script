@@ -1233,7 +1233,7 @@ RunConcurrent(function()
     local RemoteFunction = ReplicatedStorage.Assets.Remotes.GET
 
     local gold = Players.LocalPlayer.PlayerGui.Interface.Topbar.Main.Currencies.Gold.Amount.Text
-    local gradeText = Players.LocalPlayer.PlayerGui.Interface.Equipment.Categories.Upgrades.Main.Title.Text
+    local gradeText = game:GetService("Players").LocalPlayer.PlayerGui.Interface.Equipment.Categories.Upgrades.Main.Title.Text
 
     local extractedGrade = string.match(gradeText, "%[(%a%+?%-?)%s*GRADE%]")
 
@@ -1398,8 +1398,7 @@ RunConcurrent(function()
     local text = game:GetService("Players").LocalPlayer.PlayerGui.Interface.Topbar.Main.Currencies.Gold.Amount.Text
     local goldParse = parseNumber(text)
 
-    print("Gold:", goldParse)
-
+    print(goldParse)
 
     if create_Mission_OrNot then
         if typeof(gold) == "string" then
