@@ -368,64 +368,76 @@ RunConcurrent(function()
     local char = plr.Character or plr.CharacterAdded:Wait()
     local actor = char:WaitForChild("Actor")
 
-    local script1 = [[
-    local Data
-    repeat wait(1)
-        for _, v in ipairs(getgc(true)) do
-            if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
-                Data = v.Cache.Data
-            end
-        end
-    until Data
-
-            _G.Config = {}  -- สร้างตารางเก็บค่า
-
-            _G.Config["Prestige"] = Data.Slots.A.Progression["Prestige"]
-            _G.Config["Level"] = Data.Slots.A.Progression["Level"]
-            _G.Config["XP"] = _G.Data["XP"]
-            _G.Config["Max_XP"] = _G.Data["Max_XP"]
-
-            _G.Data = Data.Slots.A.Currency
-            _G.Config["Gold"] = _G.Data["Gold"]
-            _G.Config["Gem"] = _G.Data["Gems"]
-
-
-    print("Found Data")
-
-    local CurrentSlot = Data and Data["Slots"] and Data["Slots"]["A"]
-
     local Upgrades_Tag = {
-        "E", "E+", "D-", "D", "D+",
+        "E-", "E", "E+",
+        "D-", "D", "D+",
         "C-", "C", "C+",
         "B-", "B", "B+",
         "A-", "A", "A+",
         "S-"
     }
 
-    local function Getupgrades()
-        local total, plus = 0, 0
-        local upgradeData = CurrentSlot.Upgrades and CurrentSlot.Upgrades[CurrentSlot.Weapon]
-        if not upgradeData then
-            return "No upgrade data"
-        end
-        for _, v in pairs(upgradeData) do
-            total += v
-            plus += 1
-        end
-        if plus == 0 then plus = 1 end
-        local index = math.floor(total / plus)
-        index = math.clamp(index, 1, #Upgrades_Tag)
-        return Upgrades_Tag[index]
+    -- Convert to string to embed in actor script
+    local serializedTags = "{"
+    for _, tag in ipairs(Upgrades_Tag) do
+        serializedTags = serializedTags .. string.format("%q,", tag)
     end
+    serializedTags = serializedTags:sub(1, -2) .. "}"
 
-    _G.Configs = _G.Configs or {}
-    _G.Configs["gearRank"] = Getupgrades()
+    local mission_script = ([[
+local Upgrades_Tag = %s
 
-        local function rejoinServer()
-        local ts = game:GetService("TeleportService")
-        local p = game:GetService("Players").LocalPlayer
-        ts:TeleportToPlaceInstance(game.PlaceId, game.JobId, p)
+-- Wait for Data
+local Data
+repeat wait(1)
+    for _, v in ipairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
+            Data = v.Cache.Data
+
+            -- Gear Rank Evaluation
+            local blades = v.Cache.Data.Slots.A.Upgrades.Blades
+            _G.Data = blades
+
+            local allEqual = true
+            local firstValue = nil
+            local count = 0
+
+            for _, value in pairs(blades) do
+                if type(value) == "number" then
+                    if firstValue == nil then
+                        firstValue = value
+                    elseif value ~= firstValue then
+                        allEqual = false
+                        break
+                    end
+                    count = count + 1
+                end
+            end
+
+            local rank = "Unknown"
+            if allEqual and firstValue ~= nil then
+                local index = math.clamp(firstValue + 1, 1, #Upgrades_Tag)
+                rank = Upgrades_Tag[index]
+            end
+
+            _G.Configs = _G.Configs or {}
+            _G.Configs["gearRank"] = rank
+            print("Gear Rank:", rank)
+        end
     end
+until Data
+
+-- Save player info
+_G.Config = {}
+_G.Config["Prestige"] = Data.Slots.A.Progression["Prestige"]
+_G.Config["Level"] = Data.Slots.A.Progression["Level"]
+_G.Config["XP"] = Data.Slots.A.Progression["XP"]
+_G.Config["Max_XP"] = Data.Slots.A.Progression["Max_XP"]
+
+_G.Data = Data.Slots.A.Currency
+_G.Config["Gold"] = _G.Data["Gold"]
+_G.Config["Gem"] = _G.Data["Gems"]
+print("Found Data")
 
     local rank = _G.Configs["gearRank"]
     local gold = _G.Config["Gold"]
@@ -436,16 +448,16 @@ RunConcurrent(function()
     }
 
     if not highRanks[rank] then
-        if (rank == "E-" and gold >= 100000) or
+        if (rank == "E+" and gold >= 8000) or
             (rank == "D+" and gold >= 300000) or
             (rank == "C+" and gold >= 1500000) or
             (rank == "A-" and gold >= 3300000) then
             rejoinServer()
         end
     end
-    ]]
+  ]]):format(serializedTags)
 
-    run_on_actor(actor, script1)
+    run_on_actor(actor, mission_script)
 
 
 
@@ -1293,6 +1305,57 @@ RunConcurrent(function()
         label.Parent = screenGui
     end
 
+    local gearRanks = {
+        "E-", "E", "E+",
+        "D-", "D", "D+",
+        "C-", "C", "C+",
+        "B-", "B", "B+",
+        "A-", "A", "A+",
+        "S-", "S", "S+"
+    }
+
+    local function getMissionDifficultyFromGearRank(gearRank, offset)
+        local indexMap = {}
+        for i, rank in ipairs(gearRanks) do
+            indexMap[rank] = i
+        end
+
+        local idx = indexMap[gearRank]
+        if not idx then return "Easy" end
+
+        -- ถ้ามี offset (เช่น +1) ให้เลื่อน rank ขึ้น
+        if offset then
+            idx = math.clamp(idx + offset, 1, #gearRanks)
+        end
+
+        if idx >= 1 and idx <= 5 then
+            return "Easy"
+        elseif idx >= 6 and idx <= 8 then
+            return "Normal"
+        elseif idx >= 9 and idx <= 12 then
+            return "Hard"
+        elseif idx >= 13 and idx <= 15 then
+            return "Severe"
+        elseif idx >= 16 and idx <= 18 then
+            return "Aberrant"
+        else
+            return "Easy"
+        end
+    end
+
+
+    -- ตั้ง offset (เช่น +1 หรือไม่ตั้งเลยก็ได้)
+    local difficultyOffset = nil -- หรือใส่ nil ถ้าไม่ต้องการเพิ่มความยาก
+
+    if _G.Configs["Mission Difficulty"] == "auto" then
+        local gearRank = extractedGrade
+        _G.Configs["Mission Difficulty"] = getMissionDifficultyFromGearRank(gearRank, difficultyOffset)
+    end
+
+    -- เรียก mission
+    createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
+
+
 
 
     local function createMission(difficulty, missionType, name, objective)
@@ -1316,31 +1379,43 @@ RunConcurrent(function()
     end
 
     local auto_Upgrade_Gear = _G.Configs["Auto Upgrade Gear"]
+    local create_Mission_OrNot = _G.Configs["Auto Create Mission"]
+    local manualMission = true
 
-    if typeof(gold) == "string" then
-        if extractedGrade == "S" or extractedGrade == "S+" or extractedGrade == "S-" then
-        else
-            if auto_Upgrade_Gear == true then
-                if maxChecks > 0 then
-                    performFixedRounds()
-                    showOkMessage()
-                else
-                    performUntilSilent()
-                    showOkMessage()
+    if create_Mission_OrNot then
+        if typeof(gold) == "string" then
+            if extractedGrade == "S" or extractedGrade == "S+" or extractedGrade == "S-" then
+            else
+                if auto_Upgrade_Gear == true then
+                    if maxChecks > 0 then
+                        performFixedRounds()
+                        showOkMessage()
+                    else
+                        performUntilSilent()
+                        showOkMessage()
+                        task.wait(0.5)
+                        _G.Configs["Mission Difficulty"] = getMissionDifficultyFromGearRank(extractedGrade, 1)
+                        createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
+                        for _, modifier in ipairs(_G.Configs["Modifiers"]) do
+                            modifyMission(modifier)
+                            task.wait(0.1)
+                        end
+                        startMission()
+                        manualMission = false
+                        task.wait(0.5)
+                    end
                 end
             end
-        end
 
-        local create_Mission_OrNot = _G.Configs["Auto Create Mission"]
-
-        if create_Mission_OrNot then
-            createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
-
-            for _, modifier in ipairs(_G.Configs["Modifiers"]) do
-                modifyMission(modifier)
-                task.wait(0.1)
+            --Manual Missions
+            if (manualMission) then
+                createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
+                for _, modifier in ipairs(_G.Configs["Modifiers"]) do
+                    modifyMission(modifier)
+                    task.wait(0.1)
+                end
+                startMission()
             end
-            startMission()
         end
     else
         warn("gold ไม่ใช่ string")
@@ -1359,128 +1434,111 @@ RunConcurrent(function()
     local actor = char:WaitForChild("Actor")
 
     local Upgrades_Tag = {
-    "E-", "E", "E+",
-    "D-", "D", "D+",
-    "C-", "C", "C+",
-    "B-", "B", "B+",
-    "A-", "A", "A+",
-    "S-"
-}
+        "E-", "E", "E+",
+        "D-", "D", "D+",
+        "C-", "C", "C+",
+        "B-", "B", "B+",
+        "A-", "A", "A+",
+        "S-"
+    }
 
--- Convert to string to embed in actor script
-local serializedTags = "{"
-for _, tag in ipairs(Upgrades_Tag) do
-    serializedTags = serializedTags .. string.format("%q,", tag)
-end
-serializedTags = serializedTags:sub(1, -2) .. "}"
+    -- Convert to string to embed in actor script
+    local serializedTags = "{"
+    for _, tag in ipairs(Upgrades_Tag) do
+        serializedTags = serializedTags .. string.format("%q,", tag)
+    end
+    serializedTags = serializedTags:sub(1, -2) .. "}"
 
-local script2 = ([[
+    local fullScript = ([[
 local Upgrades_Tag = %s
 
-for _, v in ipairs(getgc(true)) do
-    if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
-        local blades = v.Cache.Data.Slots.A.Upgrades.Blades
-        _G.Data = blades
-
-        local allEqual = true
-        local firstValue = nil
-        local count = 0
-
-        for _, value in pairs(blades) do
-            if type(value) == "number" then
-                if firstValue == nil then
-                    firstValue = value
-                elseif value ~= firstValue then
-                    allEqual = false
-                    break
-                end
-                count = count + 1
-            end
-        end
-
-        local rank = "Unknown"
-        if allEqual and firstValue ~= nil then
-            local index = math.clamp(firstValue + 1, 1, #Upgrades_Tag)
-            rank = Upgrades_Tag[index]
-        end
-
-        _G.Configs = _G.Configs or {}
-        _G.Configs["gearRank"] = rank
-        print("Gear Rank:", rank)
-    end
-end
-]]):format(serializedTags)
-
-    local script1 = [[
+-- Wait for Data
 local Data
 repeat wait(1)
     for _, v in ipairs(getgc(true)) do
         if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
             Data = v.Cache.Data
+
+            -- Gear Rank Evaluation
+            local blades = v.Cache.Data.Slots.A.Upgrades.Blades
+            _G.Data = blades
+
+            local allEqual = true
+            local firstValue = nil
+            local count = 0
+
+            for _, value in pairs(blades) do
+                if type(value) == "number" then
+                    if firstValue == nil then
+                        firstValue = value
+                    elseif value ~= firstValue then
+                        allEqual = false
+                        break
+                    end
+                    count = count + 1
+                end
+            end
+
+            local rank = "Unknown"
+            if allEqual and firstValue ~= nil then
+                local index = math.clamp(firstValue + 1, 1, #Upgrades_Tag)
+                rank = Upgrades_Tag[index]
+            end
+
+            _G.Configs = _G.Configs or {}
+            _G.Configs["gearRank"] = rank
+            print("Gear Rank:", rank)
         end
     end
 until Data
 
-        _G.Config = {}  -- สร้างตารางเก็บค่า
+-- Save player info
+_G.Config = {}
+_G.Config["Prestige"] = Data.Slots.A.Progression["Prestige"]
+_G.Config["Level"] = Data.Slots.A.Progression["Level"]
+_G.Config["XP"] = Data.Slots.A.Progression["XP"]
+_G.Config["Max_XP"] = Data.Slots.A.Progression["Max_XP"]
 
-        _G.Config["Prestige"] = Data.Slots.A.Progression["Prestige"]
-        _G.Config["Level"] = Data.Slots.A.Progression["Level"]
-        _G.Config["XP"] = Data.Slots.A.Progression["XP"]
-        _G.Config["Max_XP"] = Data.Slots.A.Progression["Max_XP"]
-
-        _G.Data = Data.Slots.A.Currency
-        _G.Config["Gold"] = _G.Data["Gold"]
-        _G.Config["Gem"] = _G.Data["Gems"]
+_G.Data = Data.Slots.A.Currency
+_G.Config["Gold"] = _G.Data["Gold"]
+_G.Config["Gem"] = _G.Data["Gems"]
 print("Found Data")
 
 repeat task.wait() until game:IsLoaded()
 task.wait(2)
 
--- Black Screen Overlay with Kill Counter, Rank, and Level (Ultra Lightweight)
+-- UI Overlay
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-
--- Wait for PlayerGui
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Variables
-local killLabel = nil
-local rankLabel = nil
-local levelLabel = nil
-local goldLabel = nil
-local gemLabel = nil
-local prestigeLabel = nil
+local killLabel, rankLabel, levelLabel, goldLabel, gemLabel, prestigeLabel = nil, nil, nil, nil, nil, nil
 local lastUpdateTime = 0
 
--- Optimized kill count function
 local function GetKillInfo()
     local success, currentKill, maxKill = pcall(function()
         local gui = LocalPlayer.PlayerGui
         local text = gui.Interface.HUD.Objectives.Main.Slay.Text
-        local current, max = string.match(text, "%[(%d+)%/(%d+)%]")
+        local current, max = string.match(text, "%%[(%%d+)%%/(%%d+)]")
         return tonumber(current), tonumber(max)
     end)
     return success and currentKill or 0, success and maxKill or 0
 end
 
--- Create the black overlay with kill counter, rank, and level
 local function CreateBlackOverlay()
-    -- Remove existing overlay if it exists
     local existingOverlay = playerGui:FindFirstChild("BlackOverlay")
     if existingOverlay then
         existingOverlay:Destroy()
     end
 
-    -- Create ScreenGui
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "BlackOverlay"
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
-    screenGui.DisplayOrder = -1000 -- Behind other UIs
+    screenGui.DisplayOrder = -1000
     screenGui.Parent = playerGui
 
-    -- Create black background frame
     local blackFrame = Instance.new("Frame")
     blackFrame.Name = "BlackFrame"
     blackFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -1490,115 +1548,45 @@ local function CreateBlackOverlay()
     blackFrame.Active = false
     blackFrame.Parent = screenGui
 
-    -- Create kill counter label
-    killLabel = Instance.new("TextLabel")
-    killLabel.Name = "KillCounter"
-    killLabel.Size = UDim2.new(0, 200, 0, 50)
-    killLabel.Position = UDim2.new(0.5, -100, 0.5, -100) -- Slightly higher to make space for rank and level
-    killLabel.BackgroundTransparency = 1
-    killLabel.Text = "Kills: 0/0"
-    killLabel.TextColor3 = Color3.new(1, 1, 1)
-    killLabel.TextSize = 24
-    killLabel.Font = Enum.Font.Code
-    killLabel.TextStrokeTransparency = 0.5
-    killLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    killLabel.Active = false
-    killLabel.Parent = blackFrame
+    local function createLabel(name, positionY, text)
+        local label = Instance.new("TextLabel")
+        label.Name = name
+        label.Size = UDim2.new(0, 200, 0, 30)
+        label.Position = UDim2.new(0.5, -100, 0.5, positionY)
+        label.BackgroundTransparency = 1
+        label.Text = text
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.TextSize = 20
+        label.Font = Enum.Font.Code
+        label.TextStrokeTransparency = 0.5
+        label.TextStrokeColor3 = Color3.new(0, 0, 0)
+        label.Active = false
+        label.Parent = blackFrame
+        return label
+    end
 
-    -- Create rank label
-    rankLabel = Instance.new("TextLabel")
-    rankLabel.Name = "RankLabel"
-    rankLabel.Size = UDim2.new(0, 200, 0, 30)
-    rankLabel.Position = UDim2.new(0.5, -100, 0.5, -40) -- Below kill counter
-    rankLabel.BackgroundTransparency = 1
-    rankLabel.Text = "Rank: " .. tostring(_G.Configs["gearRank"])
-    rankLabel.TextColor3 = Color3.new(1, 1, 1)
-    rankLabel.TextSize = 20
-    rankLabel.Font = Enum.Font.Code
-    rankLabel.TextStrokeTransparency = 0.5
-    rankLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    rankLabel.Active = false
-    rankLabel.Parent = blackFrame
-
-    -- Create level label
-    levelLabel = Instance.new("TextLabel")
-    levelLabel.Name = "LevelLabel"
-    levelLabel.Size = UDim2.new(0, 200, 0, 30)
-    levelLabel.Position = UDim2.new(0.5, -100, 0.5, 45) -- Below rank label
-    levelLabel.BackgroundTransparency = 1
-    levelLabel.Text = "Level: " .. tostring(_G.Config["Level"] or "N/A")
-    levelLabel.TextColor3 = Color3.new(1, 1, 1)
-    levelLabel.TextSize = 20
-    levelLabel.Font = Enum.Font.Code
-    levelLabel.TextStrokeTransparency = 0.5
-    levelLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    levelLabel.Active = false
-    levelLabel.Parent = blackFrame
-
-    -- Create gold label
-    goldLabel = Instance.new("TextLabel")
-    goldLabel.Name = "GoldLabel"
-    goldLabel.Size = UDim2.new(0, 200, 0, 30)
-    goldLabel.Position = UDim2.new(0.5, -100, 0.5, 90) -- Below rank label
-    goldLabel.BackgroundTransparency = 1
-    goldLabel.Text = "Gold: " .. (_G.Config["Gold"] or "N/A")
-    goldLabel.TextColor3 = Color3.new(1, 1, 1)
-    goldLabel.TextSize = 20
-    goldLabel.Font = Enum.Font.Code
-    goldLabel.TextStrokeTransparency = 0.5
-    goldLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    goldLabel.Active = false
-    goldLabel.Parent = blackFrame
-
-    -- Create gem label
-    gemLabel = Instance.new("TextLabel")
-    gemLabel.Name = "GemLabel"
-    gemLabel.Size = UDim2.new(0, 200, 0, 30)
-    gemLabel.Position = UDim2.new(0.5, -100, 0.5, 130) -- Below rank label
-    gemLabel.BackgroundTransparency = 1
-    gemLabel.Text = "Gem: " .. (_G.Config["Gem"] or "N/A")
-    gemLabel.TextColor3 = Color3.new(1, 1, 1)
-    gemLabel.TextSize = 20
-    gemLabel.Font = Enum.Font.Code
-    gemLabel.TextStrokeTransparency = 0.5
-    gemLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    gemLabel.Active = false
-    gemLabel.Parent = blackFrame
-
-    -- Create prestigeLabel label
-    prestigeLabel = Instance.new("TextLabel")
-    prestigeLabel.Name = "PrestigeLabelLabel"
-    prestigeLabel.Size = UDim2.new(0, 200, 0, 30)
-    prestigeLabel.Position = UDim2.new(0.5, -100, 0.5, 180) -- Below rank label
-    prestigeLabel.BackgroundTransparency = 1
-    prestigeLabel.Text = "Prestige: " .. (_G.Config["Prestige"] or "N/A")
-    prestigeLabel.TextColor3 = Color3.new(1, 1, 1)
-    prestigeLabel.TextSize = 20
-    prestigeLabel.Font = Enum.Font.Code
-    prestigeLabel.TextStrokeTransparency = 0.5
-    prestigeLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    prestigeLabel.Active = false
-    prestigeLabel.Parent = blackFrame
+    killLabel = createLabel("KillCounter", -100, "Kills: 0/0")
+    rankLabel = createLabel("RankLabel", -40, "Rank: " .. tostring(_G.Configs["gearRank"]))
+    levelLabel = createLabel("LevelLabel", 45, "Level: " .. tostring(_G.Config["Level"] or "N/A"))
+    goldLabel = createLabel("GoldLabel", 90, "Gold: " .. tostring(_G.Config["Gold"] or "N/A"))
+    gemLabel = createLabel("GemLabel", 130, "Gem: " .. tostring(_G.Config["Gem"] or "N/A"))
+    prestigeLabel = createLabel("PrestigeLabel", 180, "Prestige: " .. tostring(_G.Config["Prestige"] or "N/A"))
 
     return screenGui
 end
 
--- Create the overlay
 local overlay = CreateBlackOverlay()
 
--- Update kill counter every 0.5 seconds
 local connection = RunService.Heartbeat:Connect(function()
     local currentTime = tick()
     if currentTime - lastUpdateTime >= 0.5 and killLabel and killLabel.Parent then
         lastUpdateTime = currentTime
         local currentKill, maxKill = GetKillInfo()
-        killLabel.Text = string.format("Kills: %d/%d", currentKill, maxKill)
+        killLabel.Text = string.format("Kills: %%d/%%d", currentKill, maxKill)
     end
 end)
 
--- Toggle overlay with F1
 local UserInputService = game:GetService("UserInputService")
-
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F1 then
         if overlay and overlay.Parent and overlay.BlackFrame then
@@ -1607,18 +1595,15 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
--- Disconnect update loop when overlay is removed
 overlay.AncestryChanged:Connect(function()
-    if not overlay.Parent then
-        if connection then
-            connection:Disconnect()
-            connection = nil
-        end
+    if not overlay.Parent and connection then
+        connection:Disconnect()
+        connection = nil
     end
 end)
-]]
-
-    run_on_actor(actor, script1, script2)
+]]):format(serializedTags)
+    -- Run on actor
+    run_on_actor(actor, fullScript)
 end)
 
 -- ========== END ==========
