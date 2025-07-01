@@ -448,7 +448,7 @@ print("Found Data")
     }
 
     if not highRanks[rank] then
-        if (rank == "E+" and gold >= 8000) or
+        if (rank == "E-" and gold >= 100000) or
             (rank == "D+" and gold >= 300000) or
             (rank == "C+" and gold >= 1500000) or
             (rank == "A-" and gold >= 3300000) then
@@ -1234,7 +1234,7 @@ RunConcurrent(function()
 
     local gold = Players.LocalPlayer.PlayerGui.Interface.Topbar.Main.Currencies.Gold.Amount.Text
     local gradeText = game:GetService("Players").LocalPlayer.PlayerGui.Interface.Equipment.Categories.Upgrades.Main
-    .Title.Text
+        .Title.Text
 
     local extractedGrade = string.match(gradeText, "%[(%a%+?%-?)%s*GRADE%]")
 
@@ -1419,17 +1419,19 @@ RunConcurrent(function()
                         performFixedRounds()
                         showOkMessage()
                     else
-                        performUntilSilent()
-                        showOkMessage()
-                        task.wait(0.5)
-                        _G.Configs["Mission Difficulty"] = getMissionDifficultyFromGearRank(extractedGrade, 1)
-                        createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
-                        for _, modifier in ipairs(_G.Configs["Modifiers"]) do
-                            modifyMission(modifier)
-                            task.wait(0.1)
+                        if (extractedGrade == "E-" and goldParse >= 100000) or (extractedGrade == "D+" and goldParse >= 300000) then
+                            performUntilSilent()
+                            showOkMessage()
+                            task.wait(0.5)
+                            _G.Configs["Mission Difficulty"] = getMissionDifficultyFromGearRank(extractedGrade, 1)
+                            createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
+                            for _, modifier in ipairs(_G.Configs["Modifiers"]) do
+                                modifyMission(modifier)
+                                task.wait(0.1)
+                            end
+                            startMission()
+                            task.wait(0.5)
                         end
-                        startMission()
-                        task.wait(0.5)
                     end
                 end
             end
