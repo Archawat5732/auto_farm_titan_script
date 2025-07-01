@@ -448,7 +448,7 @@ print("Found Data")
     }
 
     if not highRanks[rank] then
-        if (rank == "E+" and gold >= 8000) or
+        if (rank == "E-" and gold >= 100000) or
             (rank == "D+" and gold >= 300000) or
             (rank == "C+" and gold >= 1500000) or
             (rank == "A-" and gold >= 3300000) then
