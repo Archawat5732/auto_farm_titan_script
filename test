@@ -1400,45 +1400,43 @@ RunConcurrent(function()
 
     -- ใช้งานกับข้อความ Gold
     local text = game:GetService("Players").LocalPlayer.PlayerGui.Interface.Topbar.Main.Currencies.Gold.Amount.Text
-    local goldParse = 1000
+    local goldParse = parseNumber(text)
 
 
 
     if create_Mission_OrNot then
-        if typeof(gold) == "string" then
-            if extractedGrade == "S" or extractedGrade == "S+" or extractedGrade == "S-" then
-                createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
-                for _, modifier in ipairs(_G.Configs["Modifiers"]) do
-                    modifyMission(modifier)
-                    task.wait(0.1)
-                end
-                startMission()
-            else
-                if auto_Upgrade_Gear == true then
-                    if maxChecks > 0 then
-                        performFixedRounds()
+        if extractedGrade == "S" or extractedGrade == "S+" or extractedGrade == "S-" then
+            createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
+            for _, modifier in ipairs(_G.Configs["Modifiers"]) do
+                modifyMission(modifier)
+                task.wait(0.1)
+            end
+            startMission()
+        else
+            if auto_Upgrade_Gear == true then
+                if maxChecks > 0 then
+                    performFixedRounds()
+                    showOkMessage()
+                else
+                    if ((extractedGrade == "E-" and goldParse >= 100000) or (extractedGrade == "D+" and goldParse >= 300000)
+                            or (extractedGrade == "C+" and goldParse >= 1500000) or (extractedGrade == "A-" and goldParse >= 3500000)) then
+                        performUntilSilent()
                         showOkMessage()
-                    else
-                        if ((extractedGrade == "E-" and goldParse >= 100000) or (extractedGrade == "D+" and goldParse >= 300000)
-                                or (extractedGrade == "C+" and goldParse >= 1500000) or (extractedGrade == "A-" and goldParse >= 3500000)) then
-                            performUntilSilent()
-                            showOkMessage()
-                            task.wait(0.5)
-                            _G.Configs["Mission Difficulty"] = getMissionDifficultyFromGearRank(extractedGrade, 1)
-                            createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
-                            for _, modifier in ipairs(_G.Configs["Modifiers"]) do
-                                modifyMission(modifier)
-                                task.wait(0.1)
-                            end
-                            startMission()
-                        else
-                            createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
-                            for _, modifier in ipairs(_G.Configs["Modifiers"]) do
-                                modifyMission(modifier)
-                                task.wait(0.1)
-                            end
-                            startMission()
+                        task.wait(0.5)
+                        _G.Configs["Mission Difficulty"] = getMissionDifficultyFromGearRank(extractedGrade, 1)
+                        createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
+                        for _, modifier in ipairs(_G.Configs["Modifiers"]) do
+                            modifyMission(modifier)
+                            task.wait(0.1)
                         end
+                        startMission()
+                    else
+                        createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
+                        for _, modifier in ipairs(_G.Configs["Modifiers"]) do
+                            modifyMission(modifier)
+                            task.wait(0.1)
+                        end
+                        startMission()
                     end
                 end
             end
