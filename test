@@ -3,14 +3,14 @@ local function RunConcurrent(fn)
     task.spawn(fn)
 end
 
--- == Check_Unlock_And_EquipSkill
-RunConcurrent(function()
-    if _G.Configs["Auto Unlock And Equip Skill"] == true then
+-- == CheckUnlockAndEquipSkill
+function CheckUnlockAndEquipSkill()
+    if _G.Configs["AutoUnlockAndEquipSkill"] == true then
         local plr = game:GetService("Players").LocalPlayer
         local char = plr.Character or plr.CharacterAdded:Wait()
         local actor = char:WaitForChild("Actor")
 
-        local script1 = [[
+        local scriptCheckUnlockAndEquipSkill = [[
 	for _, v in ipairs(getgc(true)) do
 		if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
 			local hotbar = v.Cache.Data.Slots.A.Skills.Hotbar
@@ -24,11 +24,55 @@ RunConcurrent(function()
 			end
 		end
 	end
-]]
-        run_on_actor(actor, script1)
+
 
         repeat task.wait() until game:IsLoaded()
         task.wait(20)
+
+         local Players = game:GetService("Players")
+        task.wait(2)
+        local function showOkMessageSuccess()
+            local player = Players.LocalPlayer
+            local playerGui = player:WaitForChild("PlayerGui")
+
+            local screenGui = Instance.new("ScreenGui")
+            screenGui.Name = "UnlockOkMessageGui"
+            screenGui.ResetOnSpawn = false
+            screenGui.Parent = playerGui
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0, 200, 0, 50)
+            label.Position = UDim2.new(0.5, -100, 0.5, -120)
+            label.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            label.TextColor3 = Color3.new(1, 1, 1)
+            label.Text = "Unlocked"
+            label.Font = Enum.Font.SourceSansBold
+            label.TextScaled = true
+            label.Parent = screenGui
+        end
+        local function showOkMessageError()
+            local player = Players.LocalPlayer
+            local playerGui = player:WaitForChild("PlayerGui")
+
+            local screenGui = Instance.new("ScreenGui")
+            screenGui.Name = "UnlockOkMessageGui"
+            screenGui.ResetOnSpawn = false
+            screenGui.Parent = playerGui
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0, 200, 0, 50)
+            label.Position = UDim2.new(0.5, -100, 0.5, -120)
+            label.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            label.TextColor3 = Color3.new(1, 1, 1)
+            label.Text = "Unlocked"
+            label.Font = Enum.Font.SourceSansBold
+            label.TextScaled = true
+            label.Parent = screenGui
+        end
+
+
+
+
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
         local GET = ReplicatedStorage.Assets.Remotes.GET
         -- ฟังก์ชันสำหรับปลดล็อคอุปกรณ์ตามหมายเลขที่กำหนด
@@ -50,51 +94,34 @@ RunConcurrent(function()
             }))
         end
 
+        if not _G.skillequip1 or not _G.skillequip2 then
+            if not _G.skillequip1 then
+                -- ปลดล็อคอุปกรณ์ ID 1-14 และตั้งค่า Skill Slot 1 เป็น ID 14
+                unlockEquipment({
+                    "14", "13", "12", "11", "10", "9", "8",
+                    "7", "6", "5", "4", "3", "2", "1"
+                })
+                setSkillState(1, "14")
+            end
 
-        if _G.skillequip1 == false then
-            -- ปลดล็อคอุปกรณ์ ID 1-14 และตั้งค่า Skill Slot 1 เป็น ID 14
-            unlockEquipment({
-                "14", "13", "12", "11", "10", "9", "8",
-                "7", "6", "5", "4", "3", "2", "1"
-            })
-            setSkillState(1, "14")
+
+            if not _G.skillequip2 then
+                -- ปลดล็อคอุปกรณ์ ID 15-23 และตั้งค่า Skill Slot 2 เป็น ID 23
+                unlockEquipment({
+                    "23", "22", "21", "20", "19", "18",
+                    "17", "16", "15"
+                })
+                setSkillState(2, "23")
+            end
         end
 
 
-        if _G.skillequip1 == false then
-            -- ปลดล็อคอุปกรณ์ ID 15-23 และตั้งค่า Skill Slot 2 เป็น ID 23
-            unlockEquipment({
-                "23", "22", "21", "20", "19", "18",
-                "17", "16", "15"
-            })
-            setSkillState(2, "23")
-        end
 
-        local Players = game:GetService("Players")
-        task.wait(2)
-        local function showOkMessage()
-            local player = Players.LocalPlayer
-            local playerGui = player:WaitForChild("PlayerGui")
-
-            local screenGui = Instance.new("ScreenGui")
-            screenGui.Name = "UnlockOkMessageGui"
-            screenGui.ResetOnSpawn = false
-            screenGui.Parent = playerGui
-
-            local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(0, 200, 0, 50)
-            label.Position = UDim2.new(0.5, -100, 0.5, -120)
-            label.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-            label.TextColor3 = Color3.new(1, 1, 1)
-            label.Text = "Unlocked"
-            label.Font = Enum.Font.SourceSansBold
-            label.TextScaled = true
-            label.Parent = screenGui
-        end
-
-        showOkMessage()
+    ]]
+        run_on_actor(actor, scriptCheckUnlockAndEquipSkill)
     end
-end)
+end
+
 -- === REJOIN_BYPASS ===
 RunConcurrent(function()
     repeat task.wait() until game:IsLoaded()
@@ -336,6 +363,92 @@ RunConcurrent(function()
         gameStartTime = tick(), -- Track when the game/script started
         randomDelayTime = 0     -- Will store the random delay time
     }
+
+    local plr = game:GetService("Players").LocalPlayer
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    local actor = char:WaitForChild("Actor")
+
+    local script1 = [[
+    local Data
+    repeat wait(1)
+        for _, v in ipairs(getgc(true)) do
+            if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
+                Data = v.Cache.Data
+            end
+        end
+    until Data
+
+            _G.Config = {}  -- สร้างตารางเก็บค่า
+
+            _G.Config["Prestige"] = Data.Slots.A.Progression["Prestige"]
+            _G.Config["Level"] = Data.Slots.A.Progression["Level"]
+            _G.Config["XP"] = _G.Data["XP"]
+            _G.Config["Max_XP"] = _G.Data["Max_XP"]
+
+            _G.Data = Data.Slots.A.Currency
+            _G.Config["Gold"] = _G.Data["Gold"]
+            _G.Config["Gem"] = _G.Data["Gems"]
+
+
+    print("Found Data")
+
+    local CurrentSlot = Data and Data["Slots"] and Data["Slots"]["A"]
+
+    local Upgrades_Tag = {
+        "E", "E+", "D-", "D", "D+",
+        "C-", "C", "C+",
+        "B-", "B", "B+",
+        "A-", "A", "A+",
+        "S-"
+    }
+
+    local function Getupgrades()
+        local total, plus = 0, 0
+        local upgradeData = CurrentSlot.Upgrades and CurrentSlot.Upgrades[CurrentSlot.Weapon]
+        if not upgradeData then
+            return "No upgrade data"
+        end
+        for _, v in pairs(upgradeData) do
+            total += v
+            plus += 1
+        end
+        if plus == 0 then plus = 1 end
+        local index = math.floor(total / plus)
+        index = math.clamp(index, 1, #Upgrades_Tag)
+        return Upgrades_Tag[index]
+    end
+
+    _G.Configs = _G.Configs or {}
+    _G.Configs["gearRank"] = Getupgrades()
+
+        local function rejoinServer()
+        local ts = game:GetService("TeleportService")
+        local p = game:GetService("Players").LocalPlayer
+        ts:TeleportToPlaceInstance(game.PlaceId, game.JobId, p)
+    end
+
+    local rank = _G.Configs["gearRank"]
+    local gold = _G.Config["Gold"]
+    local highRanks = {
+        ["S-"] = true,
+        ["S+"] = true,
+        ["S"]  = true
+    }
+
+    if not highRanks[rank] then
+        if (rank == "E-" and gold >= 100000) or
+            (rank == "D+" and gold >= 300000) or
+            (rank == "C+" and gold >= 1500000) or
+            (rank == "A-" and gold >= 3300000) then
+            rejoinServer()
+        end
+    end
+    ]]
+
+    run_on_actor(actor, script1)
+
+
+
 
     -- Optimized character waiting
     local function WaitForCharacter()
@@ -1220,7 +1333,7 @@ RunConcurrent(function()
 
         local create_Mission_OrNot = _G.Configs["Auto Create Mission"]
 
-        if create_Mission_OrNot == true then
+        if create_Mission_OrNot then
             createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
 
             for _, modifier in ipairs(_G.Configs["Modifiers"]) do
@@ -1241,111 +1354,250 @@ end)
 
 -- === BLACK OVERLAY ===
 RunConcurrent(function()
-    repeat task.wait() until game:IsLoaded()
-    task.wait(5)
-    -- Black Screen Overlay with Kill Counter (Ultra Lightweight)
-    -- This creates a black overlay with kill counter that doesn't consume much resources
+    local plr = game:GetService("Players").LocalPlayer
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    local actor = char:WaitForChild("Actor")
 
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local LocalPlayer = Players.LocalPlayer
+    local script1 = [[
+local Data
+repeat wait(1)
+    for _, v in ipairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
+            Data = v.Cache.Data
+        end
+    end
+until Data
 
-    -- Wait for PlayerGui
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+        _G.Config = {}  -- สร้างตารางเก็บค่า
 
-    -- Variables for kill tracking
-    local killLabel = nil
-    local lastUpdateTime = 0
+        _G.Config["Prestige"] = Data.Slots.A.Progression["Prestige"]
+        _G.Config["Level"] = Data.Slots.A.Progression["Level"]
+        _G.Config["XP"] = Data.Slots.A.Progression["XP"]
+        _G.Config["Max_XP"] = Data.Slots.A.Progression["Max_XP"]
 
-    -- Optimized kill count function
-    local function GetKillInfo()
-        local success, currentKill, maxKill = pcall(function()
-            local gui = LocalPlayer.PlayerGui
-            local text = gui.Interface.HUD.Objectives.Main.Slay.Text
-            local current, max = string.match(text, "%[(%d+)%/(%d+)%]")
-            return tonumber(current), tonumber(max)
-        end)
-        return success and currentKill or 0, success and maxKill or 0
+        _G.Data = Data.Slots.A.Currency
+        _G.Config["Gold"] = _G.Data["Gold"]
+        _G.Config["Gem"] = _G.Data["Gems"]
+
+
+print("Found Data")
+
+local CurrentSlot = Data and Data["Slots"] and Data["Slots"]["A"]
+
+local Upgrades_Tag = {
+    "E-","E", "E+", "D-", "D", "D+",
+    "C-", "C", "C+",
+    "B-", "B", "B+",
+    "A-", "A", "A+",
+    "S-"
+}
+
+local function Getupgrades()
+    local total, plus = 0, 0
+    local upgradeData = CurrentSlot.Upgrades and CurrentSlot.Upgrades[CurrentSlot.Weapon]
+    if not upgradeData then
+        return "No upgrade data"
+    end
+    for _, v in pairs(upgradeData) do
+        total += v
+        plus += 1
+    end
+    if plus == 0 then plus = 1 end
+    local index = math.floor(total / plus)
+    index = math.clamp(index, 1, #Upgrades_Tag)
+    return Upgrades_Tag[index]
+end
+
+_G.Configs = _G.Configs or {}
+_G.Configs["gearRank"] = Getupgrades()
+
+print(_G.Configs["gearRank"])
+repeat task.wait() until game:IsLoaded()
+task.wait(2)
+
+-- Black Screen Overlay with Kill Counter, Rank, and Level (Ultra Lightweight)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Wait for PlayerGui
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Variables
+local killLabel = nil
+local rankLabel = nil
+local levelLabel = nil
+local goldLabel = nil
+local gemLabel = nil
+local prestigeLabel = nil
+local lastUpdateTime = 0
+
+-- Optimized kill count function
+local function GetKillInfo()
+    local success, currentKill, maxKill = pcall(function()
+        local gui = LocalPlayer.PlayerGui
+        local text = gui.Interface.HUD.Objectives.Main.Slay.Text
+        local current, max = string.match(text, "%[(%d+)%/(%d+)%]")
+        return tonumber(current), tonumber(max)
+    end)
+    return success and currentKill or 0, success and maxKill or 0
+end
+
+-- Create the black overlay with kill counter, rank, and level
+local function CreateBlackOverlay()
+    -- Remove existing overlay if it exists
+    local existingOverlay = playerGui:FindFirstChild("BlackOverlay")
+    if existingOverlay then
+        existingOverlay:Destroy()
     end
 
-    -- Create the black overlay with kill counter
-    local function CreateBlackOverlay()
-        -- Check if overlay already exists
-        local existingOverlay = playerGui:FindFirstChild("BlackOverlay")
-        if existingOverlay then
-            existingOverlay:Destroy()
-        end
+    -- Create ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "BlackOverlay"
+    screenGui.ResetOnSpawn = false
+    screenGui.IgnoreGuiInset = true
+    screenGui.DisplayOrder = -1000 -- Behind other UIs
+    screenGui.Parent = playerGui
 
-        -- Create ScreenGui
-        local screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "BlackOverlay"
-        screenGui.ResetOnSpawn = false
-        screenGui.IgnoreGuiInset = true
-        screenGui.DisplayOrder = -1000 -- Put it behind other UIs
-        screenGui.Parent = playerGui
+    -- Create black background frame
+    local blackFrame = Instance.new("Frame")
+    blackFrame.Name = "BlackFrame"
+    blackFrame.Size = UDim2.new(1, 0, 1, 0)
+    blackFrame.Position = UDim2.new(0, 0, 0, 0)
+    blackFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    blackFrame.BorderSizePixel = 0
+    blackFrame.Active = false
+    blackFrame.Parent = screenGui
 
-        -- Create black frame
-        local blackFrame = Instance.new("Frame")
-        blackFrame.Name = "BlackFrame"
-        blackFrame.Size = UDim2.new(1, 0, 1, 0)
-        blackFrame.Position = UDim2.new(0, 0, 0, 0)
-        blackFrame.BackgroundColor3 = Color3.new(0, 0, 0) -- Pure black
-        blackFrame.BorderSizePixel = 0
-        blackFrame.Active = false                         -- Don't capture input
-        blackFrame.Parent = screenGui
+    -- Create kill counter label
+    killLabel = Instance.new("TextLabel")
+    killLabel.Name = "KillCounter"
+    killLabel.Size = UDim2.new(0, 200, 0, 50)
+    killLabel.Position = UDim2.new(0.5, -100, 0.5, -100) -- Slightly higher to make space for rank and level
+    killLabel.BackgroundTransparency = 1
+    killLabel.Text = "Kills: 0/0"
+    killLabel.TextColor3 = Color3.new(1, 1, 1)
+    killLabel.TextSize = 24
+    killLabel.Font = Enum.Font.Code
+    killLabel.TextStrokeTransparency = 0.5
+    killLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    killLabel.Active = false
+    killLabel.Parent = blackFrame
 
-        -- Create kill counter label (simple white text)
-        killLabel = Instance.new("TextLabel")
-        killLabel.Name = "KillCounter"
-        killLabel.Size = UDim2.new(0, 200, 0, 50)
-        killLabel.Position = UDim2.new(0.5, -100, 0.5, -25) -- Center of screen
-        killLabel.BackgroundTransparency = 1                -- Transparent background
-        killLabel.Text = "Kills: 0/0"
-        killLabel.TextColor3 = Color3.new(1, 1, 1)          -- White text
-        killLabel.TextSize = 24
-        killLabel.Font = Enum.Font.Code                     -- Simple font
-        killLabel.TextStrokeTransparency = 0.5              -- Slight outline for visibility
-        killLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        killLabel.Active = false
-        killLabel.Parent = blackFrame
+    -- Create rank label
+    rankLabel = Instance.new("TextLabel")
+    rankLabel.Name = "RankLabel"
+    rankLabel.Size = UDim2.new(0, 200, 0, 30)
+    rankLabel.Position = UDim2.new(0.5, -100, 0.5, -40) -- Below kill counter
+    rankLabel.BackgroundTransparency = 1
+    rankLabel.Text = "Rank: " .. tostring(_G.Configs["gearRank"])
+    rankLabel.TextColor3 = Color3.new(1, 1, 1)
+    rankLabel.TextSize = 20
+    rankLabel.Font = Enum.Font.Code
+    rankLabel.TextStrokeTransparency = 0.5
+    rankLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    rankLabel.Active = false
+    rankLabel.Parent = blackFrame
 
+    -- Create level label
+    levelLabel = Instance.new("TextLabel")
+    levelLabel.Name = "LevelLabel"
+    levelLabel.Size = UDim2.new(0, 200, 0, 30)
+    levelLabel.Position = UDim2.new(0.5, -100, 0.5, 45) -- Below rank label
+    levelLabel.BackgroundTransparency = 1
+    levelLabel.Text = "Level: " .. tostring(_G.Config["Level"] or "N/A")
+    levelLabel.TextColor3 = Color3.new(1, 1, 1)
+    levelLabel.TextSize = 20
+    levelLabel.Font = Enum.Font.Code
+    levelLabel.TextStrokeTransparency = 0.5
+    levelLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    levelLabel.Active = false
+    levelLabel.Parent = blackFrame
 
-        return screenGui
+    -- Create gold label
+    goldLabel = Instance.new("TextLabel")
+    goldLabel.Name = "GoldLabel"
+    goldLabel.Size = UDim2.new(0, 200, 0, 30)
+    goldLabel.Position = UDim2.new(0.5, -100, 0.5, 90) -- Below rank label
+    goldLabel.BackgroundTransparency = 1
+    goldLabel.Text = "Gold: " .. (_G.Config["Gold"] or "N/A")
+    goldLabel.TextColor3 = Color3.new(1, 1, 1)
+    goldLabel.TextSize = 20
+    goldLabel.Font = Enum.Font.Code
+    goldLabel.TextStrokeTransparency = 0.5
+    goldLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    goldLabel.Active = false
+    goldLabel.Parent = blackFrame
+
+    -- Create gem label
+    gemLabel = Instance.new("TextLabel")
+    gemLabel.Name = "GemLabel"
+    gemLabel.Size = UDim2.new(0, 200, 0, 30)
+    gemLabel.Position = UDim2.new(0.5, -100, 0.5, 130) -- Below rank label
+    gemLabel.BackgroundTransparency = 1
+    gemLabel.Text = "Gem: " .. (_G.Config["Gem"] or "N/A")
+    gemLabel.TextColor3 = Color3.new(1, 1, 1)
+    gemLabel.TextSize = 20
+    gemLabel.Font = Enum.Font.Code
+    gemLabel.TextStrokeTransparency = 0.5
+    gemLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    gemLabel.Active = false
+    gemLabel.Parent = blackFrame
+
+    -- Create prestigeLabel label
+    prestigeLabel = Instance.new("TextLabel")
+    prestigeLabel.Name = "PrestigeLabelLabel"
+    prestigeLabel.Size = UDim2.new(0, 200, 0, 30)
+    prestigeLabel.Position = UDim2.new(0.5, -100, 0.5, 180) -- Below rank label
+    prestigeLabel.BackgroundTransparency = 1
+    prestigeLabel.Text = "Prestige: " .. (_G.Config["Prestige"] or "N/A")
+    prestigeLabel.TextColor3 = Color3.new(1, 1, 1)
+    prestigeLabel.TextSize = 20
+    prestigeLabel.Font = Enum.Font.Code
+    prestigeLabel.TextStrokeTransparency = 0.5
+    prestigeLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    prestigeLabel.Active = false
+    prestigeLabel.Parent = blackFrame
+
+    return screenGui
+end
+
+-- Create the overlay
+local overlay = CreateBlackOverlay()
+
+-- Update kill counter every 0.5 seconds
+local connection = RunService.Heartbeat:Connect(function()
+    local currentTime = tick()
+    if currentTime - lastUpdateTime >= 0.5 and killLabel and killLabel.Parent then
+        lastUpdateTime = currentTime
+        local currentKill, maxKill = GetKillInfo()
+        killLabel.Text = string.format("Kills: %d/%d", currentKill, maxKill)
     end
+end)
 
-    -- Create the overlay
-    local overlay = CreateBlackOverlay()
+-- Toggle overlay with F1
+local UserInputService = game:GetService("UserInputService")
 
-    -- Ultra lightweight update function (updates only every 0.5 seconds)
-    local connection = RunService.Heartbeat:Connect(function()
-        local currentTime = tick()
-        if currentTime - lastUpdateTime >= 0.5 and killLabel and killLabel.Parent then -- Update every 0.5 seconds only
-            lastUpdateTime = currentTime
-            local currentKill, maxKill = GetKillInfo()
-            killLabel.Text = string.format("Kills: %d/%d", currentKill, maxKill)
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F1 then
+        if overlay and overlay.Parent and overlay.BlackFrame then
+            overlay.BlackFrame.Visible = not overlay.BlackFrame.Visible
         end
-    end)
+    end
+end)
 
-    -- Optional: Add toggle functionality (press F1 to toggle)
-    local UserInputService = game:GetService("UserInputService")
-
-    UserInputService.InputBegan:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.F1 then
-            if overlay and overlay.Parent then
-                overlay.BlackFrame.Visible = not overlay.BlackFrame.Visible
-            end
+-- Disconnect update loop when overlay is removed
+overlay.AncestryChanged:Connect(function()
+    if not overlay.Parent then
+        if connection then
+            connection:Disconnect()
+            connection = nil
         end
-    end)
+    end
+end)
+]]
 
-    -- Cleanup when overlay is destroyed
-    overlay.AncestryChanged:Connect(function()
-        if not overlay.Parent then
-            if connection then
-                connection:Disconnect()
-                connection = nil
-            end
-        end
-    end)
+    run_on_actor(actor, script1)
 end)
 
 -- ========== END ==========
