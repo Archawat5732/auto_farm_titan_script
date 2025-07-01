@@ -448,7 +448,7 @@ print("Found Data")
     }
 
     if not highRanks[rank] then
-        if (rank == "E-" and gold >= 100000) or
+        if (rank == "E+" and gold >= 8000) or
             (rank == "D+" and gold >= 300000) or
             (rank == "C+" and gold >= 1500000) or
             (rank == "A-" and gold >= 3300000) then
@@ -1234,7 +1234,7 @@ RunConcurrent(function()
 
     local gold = Players.LocalPlayer.PlayerGui.Interface.Topbar.Main.Currencies.Gold.Amount.Text
     local gradeText = game:GetService("Players").LocalPlayer.PlayerGui.Interface.Equipment.Categories.Upgrades.Main
-        .Title.Text
+    .Title.Text
 
     local extractedGrade = string.match(gradeText, "%[(%a%+?%-?)%s*GRADE%]")
 
@@ -1376,6 +1376,7 @@ RunConcurrent(function()
 
     local auto_Upgrade_Gear = _G.Configs["Auto Upgrade Gear"]
     local create_Mission_OrNot = _G.Configs["Auto Create Mission"]
+    local manualMission = true
 
     local function parseNumber(text)
         local num = tonumber(text:match("[%d%.]+")) -- ดึงเลขออกมา
@@ -1401,16 +1402,17 @@ RunConcurrent(function()
     local text = game:GetService("Players").LocalPlayer.PlayerGui.Interface.Topbar.Main.Currencies.Gold.Amount.Text
     local goldParse = parseNumber(text)
 
+
+
     if create_Mission_OrNot then
-        if not (extractedGrade == "S" or extractedGrade == "S+" or extractedGrade == "S-") then
-            if typeof(gold) == "string" then
+        if typeof(gold) == "string" then
                 if auto_Upgrade_Gear == true then
                     if maxChecks > 0 then
                         performFixedRounds()
                         showOkMessage()
                     else
-                        if ((extractedGrade == "E-" and goldParse >= 100000) or (extractedGrade == "D+" and goldParse >= 300000)
-                                or (extractedGrade == "C+" and goldParse >= 1500000) or (extractedGrade == "A-" and goldParse >= 3500000)) then
+                        if ( (extractedGrade == "E-" and goldParse >= 100000) or (extractedGrade == "D+" and goldParse >= 300000) 
+                    or (extractedGrade == "C+" and goldParse >= 1500000) or (extractedGrade == "A-" and goldParse >= 3500000) ) then
                             performUntilSilent()
                             showOkMessage()
                             task.wait(0.5)
@@ -1421,19 +1423,25 @@ RunConcurrent(function()
                                 task.wait(0.1)
                             end
                             startMission()
+                            manualMission = false
                             task.wait(0.5)
                         end
                     end
                 end
             end
-        else
+
+            if extractedGrade == "S" or extractedGrade == "S+" or extractedGrade == "S-" then
+            else
+
             --Manual Missions
-            createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
-            for _, modifier in ipairs(_G.Configs["Modifiers"]) do
-                modifyMission(modifier)
-                task.wait(0.1)
+            if (manualMission) then
+                createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
+                for _, modifier in ipairs(_G.Configs["Modifiers"]) do
+                    modifyMission(modifier)
+                    task.wait(0.1)
+                end
+                startMission()
             end
-            startMission()
         end
     else
         warn("gold ไม่ใช่ string")
