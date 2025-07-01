@@ -1379,16 +1379,19 @@ RunConcurrent(function()
 
     local function parseNumber(text)
         local num = tonumber(text:match("[%d%.]+")) -- ดึงเลขออกมา
-        local suffix = text:match("[KMB]+")     -- หาตัวอักษรต่อท้าย เช่น K, M, B
+        local suffix = text:match("[KMB]+")         -- หาตัวอักษรต่อท้าย เช่น K, M, B
 
         if not num then return 0 end
 
         if suffix == "K" then
-            return num * 1_000
+            return num * 1
+            _000
         elseif suffix == "M" then
-            return num * 1_000_000
+            return num * 1
+            _000_000
         elseif suffix == "B" then
-            return num * 1_000_000_000
+            return num * 1
+            _000_000_000
         else
             return num -- ไม่มี suffix เช่น 123
         end
@@ -1402,31 +1405,28 @@ RunConcurrent(function()
 
     if create_Mission_OrNot then
         if typeof(gold) == "string" then
-            if extractedGrade == "S" or extractedGrade == "S+" or extractedGrade == "S-" then
-            else
+            if not (extractedGrade == "S" or extractedGrade == "S+" or extractedGrade == "S-") then
                 if auto_Upgrade_Gear == true then
                     if maxChecks > 0 then
                         performFixedRounds()
                         showOkMessage()
                     else
-                        performUntilSilent()
-                        showOkMessage()
-                        task.wait(0.5)
-                        _G.Configs["Mission Difficulty"] = getMissionDifficultyFromGearRank(extractedGrade, 1)
-                        createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
-                        for _, modifier in ipairs(_G.Configs["Modifiers"]) do
-                            modifyMission(modifier)
-                            task.wait(0.1)
+                        if (extractedGrade == "E-" and goldParse >= 100000) then
+                            performUntilSilent()
+                            showOkMessage()
+                            task.wait(0.5)
+                            _G.Configs["Mission Difficulty"] = getMissionDifficultyFromGearRank(extractedGrade, 1)
+                            createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
+                            for _, modifier in ipairs(_G.Configs["Modifiers"]) do
+                                modifyMission(modifier)
+                                task.wait(0.1)
+                            end
+                            startMission()
+                            task.wait(0.5)
                         end
-                        startMission()
-                        manualMission = false
-                        task.wait(0.5)
                     end
                 end
-            end
-
-            --Manual Missions
-            if (manualMission) then
+            else
                 createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
                 for _, modifier in ipairs(_G.Configs["Modifiers"]) do
                     modifyMission(modifier)
