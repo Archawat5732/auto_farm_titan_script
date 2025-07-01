@@ -1382,36 +1382,34 @@ until Data
 
 print("Found Data")
 
-local CurrentSlot = Data and Data["Slots"] and Data["Slots"]["A"]
+local blades = Data.Slots.A.Upgrades.Blades
+        _G.Data = blades
 
-local Upgrades_Tag = {
-    "E-","E", "E+", "D-", "D", "D+",
-    "C-", "C", "C+",
-    "B-", "B", "B+",
-    "A-", "A", "A+",
-    "S-"
-}
+        local allEqual = true
+        local firstValue = nil
+        local count = 0
 
-local function Getupgrades()
-    local total, plus = 0, 0
-    local upgradeData = CurrentSlot.Upgrades and CurrentSlot.Upgrades[CurrentSlot.Weapon]
-    if not upgradeData then
-        return "No upgrade data"
-    end
-    for _, v in pairs(upgradeData) do
-        total += v
-        plus += 1
-    end
-    if plus == 0 then plus = 1 end
-    local index = math.floor(total / plus)
-    index = math.clamp(index, 1, #Upgrades_Tag)
-    return Upgrades_Tag[index]
-end
+        for _, value in pairs(blades) do
+            if type(value) == "number" then
+                if firstValue == nil then
+                    firstValue = value
+                elseif value ~= firstValue then
+                    allEqual = false
+                    break
+                end
+                count = count + 1
+            end
+        end
 
-_G.Configs = _G.Configs or {}
-_G.Configs["gearRank"] = Getupgrades()
+        local rank = "Unknown"
+        if allEqual and firstValue ~= nil then
+            local index = math.clamp(firstValue + 1, 1, #Upgrades_Tag)
+            rank = Upgrades_Tag[index]
+        end
 
-print(_G.Configs["gearRank"])
+        _G.Configs = _G.Configs or {}
+        _G.Configs["gearRank"] = rank
+
 repeat task.wait() until game:IsLoaded()
 task.wait(2)
 
