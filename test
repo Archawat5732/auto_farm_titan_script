@@ -1419,6 +1419,7 @@ RunConcurrent(function()
                             task.wait(0.1)
                         end
                         startMission()
+                        manualMission = false
                         task.wait(0.5)
                     end
                 end
