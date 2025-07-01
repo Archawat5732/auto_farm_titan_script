@@ -1411,8 +1411,7 @@ RunConcurrent(function()
                         performFixedRounds()
                         showOkMessage()
                     else
-                        if (extractedGrade == "E-" and goldParse >= 100000) or (extractedGrade == "D+" and goldParse >= 300000)
-                            or (extractedGrade == "C+" and goldParse >= 1500000) or (extractedGrade == "A-" and goldParse >= 3500000) then
+                        if (extractedGrade == "E-" and goldParse >= 100000) then
                             performUntilSilent()
                             showOkMessage()
                             task.wait(0.5)
@@ -1424,13 +1423,6 @@ RunConcurrent(function()
                             end
                             startMission()
                             task.wait(0.5)
-                        else
-                            createMission(_G.Configs["Mission Difficulty"], "Missions", "Shiganshina", "Skirmish")
-                            for _, modifier in ipairs(_G.Configs["Modifiers"]) do
-                                modifyMission(modifier)
-                                task.wait(0.1)
-                            end
-                            startMission()
                         end
                     end
                 end
