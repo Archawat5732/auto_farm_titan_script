@@ -1400,7 +1400,7 @@ RunConcurrent(function()
 
     -- ใช้งานกับข้อความ Gold
     local text = game:GetService("Players").LocalPlayer.PlayerGui.Interface.Topbar.Main.Currencies.Gold.Amount.Text
-    local goldParse = parseNumber(text)
+    local goldParse = 1000
 
 
 
