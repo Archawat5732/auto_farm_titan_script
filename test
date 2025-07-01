@@ -1419,7 +1419,7 @@ RunConcurrent(function()
                         performFixedRounds()
                         showOkMessage()
                     else
-                        if (extractedGrade == "E-" and goldParse >= 100000) or (extractedGrade == "D+" and goldParse >= 300000) then
+                        if false then
                             performUntilSilent()
                             showOkMessage()
                             task.wait(0.5)
