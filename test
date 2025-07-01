@@ -1358,31 +1358,28 @@ RunConcurrent(function()
     local char = plr.Character or plr.CharacterAdded:Wait()
     local actor = char:WaitForChild("Actor")
 
-    local script1 = [[
-local Data
-repeat wait(1)
-    for _, v in ipairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
-            Data = v.Cache.Data
-        end
-    end
-until Data
+    local Upgrades_Tag = {
+    "E-", "E", "E+",
+    "D-", "D", "D+",
+    "C-", "C", "C+",
+    "B-", "B", "B+",
+    "A-", "A", "A+",
+    "S-"
+}
 
-        _G.Config = {}  -- สร้างตารางเก็บค่า
+-- Convert to string to embed in actor script
+local serializedTags = "{"
+for _, tag in ipairs(Upgrades_Tag) do
+    serializedTags = serializedTags .. string.format("%q,", tag)
+end
+serializedTags = serializedTags:sub(1, -2) .. "}"
 
-        _G.Config["Prestige"] = Data.Slots.A.Progression["Prestige"]
-        _G.Config["Level"] = Data.Slots.A.Progression["Level"]
-        _G.Config["XP"] = Data.Slots.A.Progression["XP"]
-        _G.Config["Max_XP"] = Data.Slots.A.Progression["Max_XP"]
+local script2 = ([[
+local Upgrades_Tag = %s
 
-        _G.Data = Data.Slots.A.Currency
-        _G.Config["Gold"] = _G.Data["Gold"]
-        _G.Config["Gem"] = _G.Data["Gems"]
-
-
-print("Found Data")
-
-local blades = Data.Slots.A.Upgrades.Blades
+for _, v in ipairs(getgc(true)) do
+    if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
+        local blades = v.Cache.Data.Slots.A.Upgrades.Blades
         _G.Data = blades
 
         local allEqual = true
@@ -1409,6 +1406,32 @@ local blades = Data.Slots.A.Upgrades.Blades
 
         _G.Configs = _G.Configs or {}
         _G.Configs["gearRank"] = rank
+        print("Gear Rank:", rank)
+    end
+end
+]]):format(serializedTags)
+
+    local script1 = [[
+local Data
+repeat wait(1)
+    for _, v in ipairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "Cache") and rawget(v, "Events") and type(v.Cache) == "table" then
+            Data = v.Cache.Data
+        end
+    end
+until Data
+
+        _G.Config = {}  -- สร้างตารางเก็บค่า
+
+        _G.Config["Prestige"] = Data.Slots.A.Progression["Prestige"]
+        _G.Config["Level"] = Data.Slots.A.Progression["Level"]
+        _G.Config["XP"] = Data.Slots.A.Progression["XP"]
+        _G.Config["Max_XP"] = Data.Slots.A.Progression["Max_XP"]
+
+        _G.Data = Data.Slots.A.Currency
+        _G.Config["Gold"] = _G.Data["Gold"]
+        _G.Config["Gem"] = _G.Data["Gems"]
+print("Found Data")
 
 repeat task.wait() until game:IsLoaded()
 task.wait(2)
@@ -1595,7 +1618,7 @@ overlay.AncestryChanged:Connect(function()
 end)
 ]]
 
-    run_on_actor(actor, script1)
+    run_on_actor(actor, script1, script2)
 end)
 
 -- ========== END ==========
