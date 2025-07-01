@@ -1233,7 +1233,7 @@ RunConcurrent(function()
     local RemoteFunction = ReplicatedStorage.Assets.Remotes.GET
 
     local gold = Players.LocalPlayer.PlayerGui.Interface.Topbar.Main.Currencies.Gold.Amount.Text
-    local gradeText = game:GetService("Players").LocalPlayer.PlayerGui.Interface.Equipment.Categories.Upgrades.Main.Title.Text
+    local gradeText = Players.LocalPlayer.PlayerGui.Interface.Equipment.Categories.Upgrades.Main.Title.Text
 
     local extractedGrade = string.match(gradeText, "%[(%a%+?%-?)%s*GRADE%]")
 
@@ -1376,29 +1376,6 @@ RunConcurrent(function()
     local auto_Upgrade_Gear = _G.Configs["Auto Upgrade Gear"]
     local create_Mission_OrNot = _G.Configs["Auto Create Mission"]
     local manualMission = true
-
-    local function parseNumber(text)
-        local num = tonumber(text:match("[%d%.]+")) -- ดึงเลขออกมา
-        local suffix = text:match("[KMB]+")     -- หาตัวอักษรต่อท้าย เช่น K, M, B
-
-        if not num then return 0 end
-
-        if suffix == "K" then
-            return num * 1_000
-        elseif suffix == "M" then
-            return num * 1_000_000
-        elseif suffix == "B" then
-            return num * 1_000_000_000
-        else
-            return num -- ไม่มี suffix เช่น 123
-        end
-    end
-
-    -- ใช้งานกับข้อความ Gold
-    local text = game:GetService("Players").LocalPlayer.PlayerGui.Interface.Topbar.Main.Currencies.Gold.Amount.Text
-    local goldParse = parseNumber(text)
-
-
 
     if create_Mission_OrNot then
         if typeof(gold) == "string" then
